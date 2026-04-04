@@ -16,6 +16,7 @@ Dor Sela ID-209342260
 
 Commands used to generate the figures (mean time over 20 runs per size):
 
+```
 ```Run this command to execute task 1
 python run_experiments.py -a 1 3 4 -s 100 500 1000 3000 -e 0 -r 20
 
