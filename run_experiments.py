@@ -1,9 +1,4 @@
-"""
-Sorting algorithm experiments: timing on random and nearly-sorted arrays.
-Command-line interface as required for Data Structures Python Assignment 1.
-"""
-
-from __future__ import annotations
+from __future__ annotations
 
 import argparse
 import random
@@ -13,18 +8,12 @@ from typing import Callable, List, Sequence, Tuple
 
 import matplotlib.pyplot as plt
 
-# Selected algorithms for this assignment: 1 Bubble, 3 Insertion, 4 Merge.
 DEFAULT_ALGORITHM_IDS: List[int] = [1, 3, 4]
-
-# Default array sizes for plots: 0 through 5000 (step 500).
 DEFAULT_SIZES: List[int] = list(range(0, 5001, 500))
 X_AXIS_MIN = 0
 X_AXIS_MAX = 5000
 
-# --- Sorting algorithms (IDs 1–5) -----------------------------------------
-
 SortFn = Callable[[List[int]], None]
-
 
 def bubble_sort(arr: List[int]) -> None:
     n = len(arr)
@@ -37,7 +26,6 @@ def bubble_sort(arr: List[int]) -> None:
         if not swapped:
             break
 
-
 def selection_sort(arr: List[int]) -> None:
     n = len(arr)
     for i in range(n):
@@ -47,7 +35,6 @@ def selection_sort(arr: List[int]) -> None:
                 min_idx = j
         arr[i], arr[min_idx] = arr[min_idx], arr[i]
 
-
 def insertion_sort(arr: List[int]) -> None:
     for i in range(1, len(arr)):
         key = arr[i]
@@ -56,7 +43,6 @@ def insertion_sort(arr: List[int]) -> None:
             arr[j + 1] = arr[j]
             j -= 1
         arr[j + 1] = key
-
 
 def _merge(arr: List[int], left: int, mid: int, right: int) -> None:
     L = arr[left : mid + 1]
@@ -80,7 +66,6 @@ def _merge(arr: List[int], left: int, mid: int, right: int) -> None:
         j += 1
         k += 1
 
-
 def _merge_sort_range(arr: List[int], left: int, right: int) -> None:
     if left < right:
         mid = (left + right) // 2
@@ -88,11 +73,9 @@ def _merge_sort_range(arr: List[int], left: int, right: int) -> None:
         _merge_sort_range(arr, mid + 1, right)
         _merge(arr, left, mid, right)
 
-
 def merge_sort(arr: List[int]) -> None:
     if len(arr) > 1:
         _merge_sort_range(arr, 0, len(arr) - 1)
-
 
 def _partition(arr: List[int], low: int, high: int) -> int:
     pivot = arr[high]
@@ -104,18 +87,15 @@ def _partition(arr: List[int], low: int, high: int) -> int:
     arr[i + 1], arr[high] = arr[high], arr[i + 1]
     return i + 1
 
-
 def _quick_sort_range(arr: List[int], low: int, high: int) -> None:
     if low < high:
         p = _partition(arr, low, high)
         _quick_sort_range(arr, low, p - 1)
         _quick_sort_range(arr, p + 1, high)
 
-
 def quick_sort(arr: List[int]) -> None:
     if len(arr) > 1:
         _quick_sort_range(arr, 0, len(arr) - 1)
-
 
 ALGORITHMS: dict[int, Tuple[str, SortFn]] = {
     1: ("Bubble Sort", bubble_sort),
@@ -125,13 +105,9 @@ ALGORITHMS: dict[int, Tuple[str, SortFn]] = {
     5: ("Quick Sort", quick_sort),
 }
 
-
-# --- Data generation ----------------------------------------------------------
-
 def random_array(n: int, seed: int | None = None) -> List[int]:
     rng = random.Random(seed)
     return [rng.randint(-(10**9), 10**9) for _ in range(n)]
-
 
 def nearly_sorted_array(n: int, noise_fraction: float, base_seed: int | None) -> List[int]:
     if n <= 0:
@@ -147,15 +123,11 @@ def nearly_sorted_array(n: int, noise_fraction: float, base_seed: int | None) ->
         arr[i], arr[j] = arr[j], arr[i]
     return arr
 
-
-# --- Timing -------------------------------------------------------------------
-
 def time_sort_once(sort_fn: SortFn, data: List[int]) -> float:
     work = list(data)
     t0 = time.perf_counter()
     sort_fn(work)
     return time.perf_counter() - t0
-
 
 def run_trials(
     sort_fn: SortFn,
@@ -163,7 +135,6 @@ def run_trials(
     size: int,
     repetitions: int,
 ) -> Tuple[float, float]:
-    """Return (mean_seconds, stdev_seconds)."""
     times: List[float] = []
     for rep in range(repetitions):
         data = build_data(size, rep)
@@ -172,18 +143,14 @@ def run_trials(
     std_t = statistics.stdev(times) if len(times) > 1 else 0.0
     return mean_t, std_t
 
-
-# --- Plotting -----------------------------------------------------------------
-
 def _xlim_right(sizes: Sequence[int]) -> float:
     return float(max(X_AXIS_MAX, max(sizes, default=0)))
-
 
 def plot_random_comparison(
     algo_ids: Sequence[int],
     sizes: Sequence[int],
     means: dict[int, List[float]],
-    stds: dict[int, List[float]],          # ← NEW
+    stds: dict[int, List[float]],
     repetitions: int,
     out_path: str,
 ) -> None:
@@ -196,7 +163,7 @@ def plot_random_comparison(
         color = line.get_color()
         lower = [m - s for m, s in zip(y, sd)]
         upper = [m + s for m, s in zip(y, sd)]
-        plt.fill_between(sizes, lower, upper, alpha=0.2, color=color)  # ← shading
+        plt.fill_between(sizes, lower, upper, alpha=0.2, color=color)
     plt.xlabel("Array size (n)")
     plt.ylabel("Time (seconds)")
     plt.title(f"Random integers — mean time over {repetitions} runs")
@@ -207,14 +174,13 @@ def plot_random_comparison(
     plt.savefig(out_path, dpi=150, format="png")
     plt.close()
 
-
 def plot_nearly_sorted_comparison(
     algo_ids: Sequence[int],
     sizes: Sequence[int],
     means_5: dict[int, List[float]],
-    stds_5: dict[int, List[float]],        # ← NEW
+    stds_5: dict[int, List[float]],
     means_20: dict[int, List[float]],
-    stds_20: dict[int, List[float]],       # ← NEW
+    stds_20: dict[int, List[float]],
     repetitions: int,
     out_path: str,
 ) -> None:
@@ -252,12 +218,11 @@ def plot_nearly_sorted_comparison(
     plt.savefig(out_path, dpi=150, format="png")
     plt.close()
 
-
 def plot_single_noise(
     algo_ids: Sequence[int],
     sizes: Sequence[int],
     means: dict[int, List[float]],
-    stds: dict[int, List[float]],          # ← NEW
+    stds: dict[int, List[float]],
     repetitions: int,
     noise_label: str,
     out_path: str,
@@ -271,7 +236,7 @@ def plot_single_noise(
         color = line.get_color()
         lower = [m - s for m, s in zip(y, sd)]
         upper = [m + s for m, s in zip(y, sd)]
-        plt.fill_between(sizes, lower, upper, alpha=0.2, color=color)  # ← shading
+        plt.fill_between(sizes, lower, upper, alpha=0.2, color=color)
     plt.xlabel("Array size (n)")
     plt.ylabel("Time (seconds)")
     plt.title(f"Nearly sorted ({noise_label}) — mean time over {repetitions} runs")
@@ -282,141 +247,78 @@ def plot_single_noise(
     plt.savefig(out_path, dpi=150, format="png")
     plt.close()
 
-
-# --- CLI ----------------------------------------------------------------------
-
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(
-        description="Compare sorting algorithms (Assignment 1)."
-    )
-    p.add_argument(
-        "-a", "--algorithms",
-        type=int, nargs="*",
-        default=DEFAULT_ALGORITHM_IDS,
-        choices=sorted(ALGORITHMS.keys()),
-        metavar="ID",
-        help="Algorithm IDs (default: 1 3 4). 1 Bubble, 2 Selection, 3 Insertion, 4 Merge, 5 Quick",
-    )
-    p.add_argument(
-        "-s", "--sizes",
-        type=int, nargs="*",
-        default=DEFAULT_SIZES,
-        help=f"Array sizes (default: 0..{X_AXIS_MAX} step 500).",
-    )
-    p.add_argument(
-        "-e", "--experiment",
-        type=int, default=1, choices=[1, 2],
-        help="Part C noise: 1 = ~5%% swaps, 2 = ~20%% swaps.",
-    )
-    p.add_argument(
-        "--both-noise", action="store_true",
-        help="Run Part C with both 5%% and 20%% in two subplots.",
-    )
-    p.add_argument(
-        "-r", "--repetitions",
-        type=int, default=10,
-        help="Number of timed runs per (algorithm, size)",
-    )
+    p = argparse.ArgumentParser(description="Compare sorting algorithms (Assignment 1).")
+    p.add_argument("-a", "--algorithms", type=int, nargs="*", default=DEFAULT_ALGORITHM_IDS, choices=sorted(ALGORITHMS.keys()), metavar="ID")
+    p.add_argument("-s", "--sizes", type=int, nargs="*", default=DEFAULT_SIZES)
+    p.add_argument("-e", "--experiment", type=int, default=1, choices=[1, 2])
+    p.add_argument("--both-noise", action="store_true")
+    p.add_argument("-r", "--repetitions", type=int, default=10)
     p.add_argument("--out1", default="result1.png")
     p.add_argument("--out2", default="result2.png")
     return p.parse_args()
 
-
-def run_part_b_random(
-    algo_ids: Sequence[int],
-    sizes: Sequence[int],
-    repetitions: int,
-    out_path: str,
-) -> None:
+def run_part_b_random(algo_ids: Sequence[int], sizes: Sequence[int], repetitions: int, out_path: str) -> None:
     means: dict[int, List[float]] = {a: [] for a in algo_ids}
-    stds:  dict[int, List[float]] = {a: [] for a in algo_ids}  # ← NEW
-
+    stds:  dict[int, List[float]] = {a: [] for a in algo_ids}
     def build_random(n: int, rep: int) -> List[int]:
         return random_array(n, seed=rep * 10007 + n)
-
     for aid in algo_ids:
         _, fn = ALGORITHMS[aid]
         for n in sizes:
             m, s = run_trials(fn, build_random, n, repetitions)
             means[aid].append(m)
-            stds[aid].append(s)   # ← NEW
-
+            stds[aid].append(s)
     plot_random_comparison(algo_ids, sizes, means, stds, repetitions, out_path)
 
-
-def run_part_c_single_noise(
-    algo_ids: Sequence[int],
-    sizes: Sequence[int],
-    repetitions: int,
-    frac: float,
-    noise_label: str,
-    out_path: str,
-) -> None:
+def run_part_c_single_noise(algo_ids: Sequence[int], sizes: Sequence[int], repetitions: int, frac: float, noise_label: str, out_path: str) -> None:
     means: dict[int, List[float]] = {a: [] for a in algo_ids}
-    stds:  dict[int, List[float]] = {a: [] for a in algo_ids}  # ← NEW
-
+    stds:  dict[int, List[float]] = {a: [] for a in algo_ids}
     def build(n: int, rep: int) -> List[int]:
         return nearly_sorted_array(n, frac, base_seed=rep * 50021 + n)
-
     for aid in algo_ids:
         _, fn = ALGORITHMS[aid]
         for n in sizes:
             m, s = run_trials(fn, build, n, repetitions)
             means[aid].append(m)
-            stds[aid].append(s)   # ← NEW
-
+            stds[aid].append(s)
     plot_single_noise(algo_ids, sizes, means, stds, repetitions, noise_label, out_path)
 
-
-def run_part_c_both_noise_levels(
-    algo_ids: Sequence[int],
-    sizes: Sequence[int],
-    repetitions: int,
-    out_path: str,
-) -> None:
+def run_part_c_both_noise_levels(algo_ids: Sequence[int], sizes: Sequence[int], repetitions: int, out_path: str) -> None:
     means_5  = {a: [] for a in algo_ids}
-    stds_5   = {a: [] for a in algo_ids}   # ← NEW
+    stds_5   = {a: [] for a in algo_ids}
     means_20 = {a: [] for a in algo_ids}
-    stds_20  = {a: [] for a in algo_ids}   # ← NEW
-
+    stds_20  = {a: [] for a in algo_ids}
     def build_noisy(n: int, rep: int, frac: float) -> List[int]:
         return nearly_sorted_array(n, frac, base_seed=rep * 30011 + n + int(frac * 1000))
-
     for aid in algo_ids:
         _, fn = ALGORITHMS[aid]
         for n in sizes:
             m5, s5 = run_trials(fn, lambda n_, r_, f=0.05: build_noisy(n_, r_, f), n, repetitions)
             means_5[aid].append(m5)
-            stds_5[aid].append(s5)    # ← NEW
+            stds_5[aid].append(s5)
             m20, s20 = run_trials(fn, lambda n_, r_, f=0.20: build_noisy(n_, r_, f), n, repetitions)
             means_20[aid].append(m20)
-            stds_20[aid].append(s20)  # ← NEW
-
-    plot_nearly_sorted_comparison(
-        algo_ids, sizes, means_5, stds_5, means_20, stds_20, repetitions, out_path
-    )
-
+            stds_20[aid].append(s20)
+    plot_nearly_sorted_comparison(algo_ids, sizes, means_5, stds_5, means_20, stds_20, repetitions, out_path)
 
 def main() -> None:
     args = parse_args()
     algo_ids = args.algorithms if args.algorithms else list(DEFAULT_ALGORITHM_IDS)
     sizes = sorted(args.sizes) if args.sizes else list(DEFAULT_SIZES)
     reps = max(1, args.repetitions)
-
     if args.both_noise:
         run_part_b_random(algo_ids, sizes, reps, args.out1)
         print(f"Wrote {args.out1} (random arrays).")
         run_part_c_both_noise_levels(algo_ids, sizes, reps, args.out2)
         print(f"Wrote {args.out2} (nearly sorted, 5%% and 20%% noise).")
         return
-
     run_part_b_random(algo_ids, sizes, reps, args.out1)
     print(f"Wrote {args.out1} (random arrays).")
     frac = 0.05 if args.experiment == 1 else 0.20
     label = "~5% swaps" if args.experiment == 1 else "~20% swaps"
     run_part_c_single_noise(algo_ids, sizes, reps, frac, label, args.out2)
     print(f"Wrote {args.out2} (nearly sorted, {label}).")
-
 
 if __name__ == "__main__":
     main()
