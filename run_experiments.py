@@ -18,7 +18,6 @@ DEFAULT_ALGORITHM_IDS: List[int] = [1, 3, 4]
 
 # Default array sizes for plots: 0 through 5000 (step 500).
 DEFAULT_SIZES: List[int] = list(range(0, 5001, 500))
-# X-axis: always show from 0 up to at least this n (and wider if -s goes beyond).
 X_AXIS_MIN = 0
 X_AXIS_MAX = 5000
 
@@ -135,7 +134,6 @@ def random_array(n: int, seed: int | None = None) -> List[int]:
 
 
 def nearly_sorted_array(n: int, noise_fraction: float, base_seed: int | None) -> List[int]:
-    """Sorted 0..n-1, then apply roughly (noise_fraction * n) random swaps."""
     if n <= 0:
         return []
     arr = list(range(n))
@@ -185,6 +183,7 @@ def plot_random_comparison(
     algo_ids: Sequence[int],
     sizes: Sequence[int],
     means: dict[int, List[float]],
+    stds: dict[int, List[float]],          # ← NEW
     repetitions: int,
     out_path: str,
 ) -> None:
@@ -192,7 +191,12 @@ def plot_random_comparison(
     for aid in algo_ids:
         name, _ = ALGORITHMS[aid]
         y = means[aid]
-        plt.plot(sizes, y, label=name, marker="o")
+        sd = stds[aid]
+        line, = plt.plot(sizes, y, label=name, marker="o")
+        color = line.get_color()
+        lower = [m - s for m, s in zip(y, sd)]
+        upper = [m + s for m, s in zip(y, sd)]
+        plt.fill_between(sizes, lower, upper, alpha=0.2, color=color)  # ← shading
     plt.xlabel("Array size (n)")
     plt.ylabel("Time (seconds)")
     plt.title(f"Random integers — mean time over {repetitions} runs")
@@ -208,15 +212,29 @@ def plot_nearly_sorted_comparison(
     algo_ids: Sequence[int],
     sizes: Sequence[int],
     means_5: dict[int, List[float]],
+    stds_5: dict[int, List[float]],        # ← NEW
     means_20: dict[int, List[float]],
+    stds_20: dict[int, List[float]],       # ← NEW
     repetitions: int,
     out_path: str,
 ) -> None:
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
     for aid in algo_ids:
         name, _ = ALGORITHMS[aid]
-        ax1.plot(sizes, means_5[aid], label=name, marker="o")
-        ax2.plot(sizes, means_20[aid], label=name, marker="o")
+        l1, = ax1.plot(sizes, means_5[aid], label=name, marker="o")
+        ax1.fill_between(
+            sizes,
+            [m - s for m, s in zip(means_5[aid], stds_5[aid])],
+            [m + s for m, s in zip(means_5[aid], stds_5[aid])],
+            alpha=0.2, color=l1.get_color(),
+        )
+        l2, = ax2.plot(sizes, means_20[aid], label=name, marker="o")
+        ax2.fill_between(
+            sizes,
+            [m - s for m, s in zip(means_20[aid], stds_20[aid])],
+            [m + s for m, s in zip(means_20[aid], stds_20[aid])],
+            alpha=0.2, color=l2.get_color(),
+        )
     ax1.set_xlabel("Array size (n)")
     ax2.set_xlabel("Array size (n)")
     ax1.set_ylabel("Time (seconds)")
@@ -239,6 +257,7 @@ def plot_single_noise(
     algo_ids: Sequence[int],
     sizes: Sequence[int],
     means: dict[int, List[float]],
+    stds: dict[int, List[float]],          # ← NEW
     repetitions: int,
     noise_label: str,
     out_path: str,
@@ -246,7 +265,13 @@ def plot_single_noise(
     plt.figure(figsize=(10, 6))
     for aid in algo_ids:
         name, _ = ALGORITHMS[aid]
-        plt.plot(sizes, means[aid], label=name, marker="o")
+        y = means[aid]
+        sd = stds[aid]
+        line, = plt.plot(sizes, y, label=name, marker="o")
+        color = line.get_color()
+        lower = [m - s for m, s in zip(y, sd)]
+        upper = [m + s for m, s in zip(y, sd)]
+        plt.fill_between(sizes, lower, upper, alpha=0.2, color=color)  # ← shading
     plt.xlabel("Array size (n)")
     plt.ylabel("Time (seconds)")
     plt.title(f"Nearly sorted ({noise_label}) — mean time over {repetitions} runs")
@@ -262,60 +287,38 @@ def plot_single_noise(
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        description="Compare sorting algorithms (Assignment 1). "
-        "Every run executes Part B (random → result1.png) then Part C (nearly sorted → result2.png). "
-        "-e selects Part C noise level (ignored if --both-noise)."
+        description="Compare sorting algorithms (Assignment 1)."
     )
     p.add_argument(
-        "-a",
-        "--algorithms",
-        type=int,
-        nargs="*",
+        "-a", "--algorithms",
+        type=int, nargs="*",
         default=DEFAULT_ALGORITHM_IDS,
         choices=sorted(ALGORITHMS.keys()),
         metavar="ID",
-        help="Algorithm IDs (default: 1 3 4). 1 Bubble, 2 Selection, 3 Insertion, "
-        "4 Merge, 5 Quick",
+        help="Algorithm IDs (default: 1 3 4). 1 Bubble, 2 Selection, 3 Insertion, 4 Merge, 5 Quick",
     )
     p.add_argument(
-        "-s",
-        "--sizes",
-        type=int,
-        nargs="*",
+        "-s", "--sizes",
+        type=int, nargs="*",
         default=DEFAULT_SIZES,
-        help=f"Array sizes (default: 0..{X_AXIS_MAX} step 500). Example: -s 0 1000 5000",
+        help=f"Array sizes (default: 0..{X_AXIS_MAX} step 500).",
     )
     p.add_argument(
-        "-e",
-        "--experiment",
-        type=int,
-        default=1,
-        choices=[1, 2],
-        help="Part C noise after Part B: 1 = ~5%% swaps, 2 = ~20%% swaps (result2.png). "
-        "Ignored when --both-noise (then result2 has both levels).",
+        "-e", "--experiment",
+        type=int, default=1, choices=[1, 2],
+        help="Part C noise: 1 = ~5%% swaps, 2 = ~20%% swaps.",
     )
     p.add_argument(
-        "--both-noise",
-        action="store_true",
-        help="Run Part B, then Part C with 5%% and 20%% in two subplots (result2.png).",
+        "--both-noise", action="store_true",
+        help="Run Part C with both 5%% and 20%% in two subplots.",
     )
     p.add_argument(
-        "-r",
-        "--repetitions",
-        type=int,
-        default=10,
+        "-r", "--repetitions",
+        type=int, default=10,
         help="Number of timed runs per (algorithm, size)",
     )
-    p.add_argument(
-        "--out1",
-        default="result1.png",
-        help="Output path for random-array experiment",
-    )
-    p.add_argument(
-        "--out2",
-        default="result2.png",
-        help="Output path for nearly-sorted experiment",
-    )
+    p.add_argument("--out1", default="result1.png")
+    p.add_argument("--out2", default="result2.png")
     return p.parse_args()
 
 
@@ -326,6 +329,7 @@ def run_part_b_random(
     out_path: str,
 ) -> None:
     means: dict[int, List[float]] = {a: [] for a in algo_ids}
+    stds:  dict[int, List[float]] = {a: [] for a in algo_ids}  # ← NEW
 
     def build_random(n: int, rep: int) -> List[int]:
         return random_array(n, seed=rep * 10007 + n)
@@ -333,10 +337,11 @@ def run_part_b_random(
     for aid in algo_ids:
         _, fn = ALGORITHMS[aid]
         for n in sizes:
-            m, _ = run_trials(fn, build_random, n, repetitions)
+            m, s = run_trials(fn, build_random, n, repetitions)
             means[aid].append(m)
+            stds[aid].append(s)   # ← NEW
 
-    plot_random_comparison(algo_ids, sizes, means, repetitions, out_path)
+    plot_random_comparison(algo_ids, sizes, means, stds, repetitions, out_path)
 
 
 def run_part_c_single_noise(
@@ -348,6 +353,7 @@ def run_part_c_single_noise(
     out_path: str,
 ) -> None:
     means: dict[int, List[float]] = {a: [] for a in algo_ids}
+    stds:  dict[int, List[float]] = {a: [] for a in algo_ids}  # ← NEW
 
     def build(n: int, rep: int) -> List[int]:
         return nearly_sorted_array(n, frac, base_seed=rep * 50021 + n)
@@ -355,10 +361,11 @@ def run_part_c_single_noise(
     for aid in algo_ids:
         _, fn = ALGORITHMS[aid]
         for n in sizes:
-            m, _ = run_trials(fn, build, n, repetitions)
+            m, s = run_trials(fn, build, n, repetitions)
             means[aid].append(m)
+            stds[aid].append(s)   # ← NEW
 
-    plot_single_noise(algo_ids, sizes, means, repetitions, noise_label, out_path)
+    plot_single_noise(algo_ids, sizes, means, stds, repetitions, noise_label, out_path)
 
 
 def run_part_c_both_noise_levels(
@@ -367,34 +374,26 @@ def run_part_c_both_noise_levels(
     repetitions: int,
     out_path: str,
 ) -> None:
-    means_5 = {a: [] for a in algo_ids}
+    means_5  = {a: [] for a in algo_ids}
+    stds_5   = {a: [] for a in algo_ids}   # ← NEW
     means_20 = {a: [] for a in algo_ids}
+    stds_20  = {a: [] for a in algo_ids}   # ← NEW
 
     def build_noisy(n: int, rep: int, frac: float) -> List[int]:
-        return nearly_sorted_array(
-            n, frac, base_seed=rep * 30011 + n + int(frac * 1000)
-        )
+        return nearly_sorted_array(n, frac, base_seed=rep * 30011 + n + int(frac * 1000))
 
     for aid in algo_ids:
         _, fn = ALGORITHMS[aid]
         for n in sizes:
-            m5, _ = run_trials(
-                fn,
-                lambda n_, r_, f=0.05: build_noisy(n_, r_, f),
-                n,
-                repetitions,
-            )
+            m5, s5 = run_trials(fn, lambda n_, r_, f=0.05: build_noisy(n_, r_, f), n, repetitions)
             means_5[aid].append(m5)
-            m20, _ = run_trials(
-                fn,
-                lambda n_, r_, f=0.20: build_noisy(n_, r_, f),
-                n,
-                repetitions,
-            )
+            stds_5[aid].append(s5)    # ← NEW
+            m20, s20 = run_trials(fn, lambda n_, r_, f=0.20: build_noisy(n_, r_, f), n, repetitions)
             means_20[aid].append(m20)
+            stds_20[aid].append(s20)  # ← NEW
 
     plot_nearly_sorted_comparison(
-        algo_ids, sizes, means_5, means_20, repetitions, out_path
+        algo_ids, sizes, means_5, stds_5, means_20, stds_20, repetitions, out_path
     )
 
 
