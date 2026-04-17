@@ -30,15 +30,18 @@ Let's dive into the results-
 
 The following is the result of task1 with random arrays-
 ## result1.png
+<img width="1500" height="900" alt="image" src="https://github.com/user-attachments/assets/e0eb5fa0-bfbb-4899-bdfc-be6d0cefcfe1" />
 
-<img width="1500" height="900" alt="figure1" src="https://github.com/user-attachments/assets/ed90f1b7-00fa-4da5-ab00-eb01d5d05a1d" />
+
 
 
 **Explanation:** On random integers, bubble sort and insertion sort show much faster growth of running time with *n* than merge sort, consistent with quadratic versus *n* log *n* behavior. Merge sort stays the lowest curve for larger sizes.
 
 The following is the result of task2 with nearly sorted arrays and noise
 ## result2.png
-<img width="1500" height="900" alt="figure2" src="https://github.com/user-attachments/assets/94f3c928-a770-4a08-8402-481bd1865f00" />
+
+<img width="1500" height="900" alt="image" src="https://github.com/user-attachments/assets/8b7e0581-2a59-48d1-9f02-3270a1066a07" />
+
 
 
 
